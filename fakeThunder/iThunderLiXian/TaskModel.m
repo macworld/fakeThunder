@@ -67,9 +67,9 @@
         
         
         if (!self.FatherTitle) {
-            args = [NSArray arrayWithObjects:@"--file-allocation=none",@"-c",@"-s",max_thread_str,@"-x",max_thread_str,@"-d",save_path,@"--out",self.TaskTitle, @"--max-download-limit", max_speed_str,@"--header", self.Cookie, self.LiXianURL, nil];
+            args = [NSArray arrayWithObjects:@"--file-allocation=none",@"-c",@"-s",max_thread_str,@"-x",max_thread_str,@"-d",save_path,@"--out",[NSString stringWithFormat:@"%@.!", self.TaskTitle], @"--max-download-limit", max_speed_str,@"--header", self.Cookie, self.LiXianURL, nil];
         } else {
-            args = [NSArray arrayWithObjects:@"--file-allocation=none",@"-c",@"-s", max_thread_str,@"-x", max_thread_str, @"-d",save_path,@"--out",[NSString stringWithFormat:@"%@/%@",self.FatherTitle,self.TaskTitle], @"--max-download-limit", max_speed_str, @"--header", self.Cookie, self.LiXianURL, nil];
+            args = [NSArray arrayWithObjects:@"--file-allocation=none",@"-c",@"-s", max_thread_str,@"-x", max_thread_str, @"-d",save_path,@"--out",[NSString stringWithFormat:@"%@/%@.!",self.FatherTitle,self.TaskTitle], @"--max-download-limit", max_speed_str, @"--header", self.Cookie, self.LiXianURL, nil];
         }
         
         
@@ -118,6 +118,15 @@
             memset(temp,0,1024*sizeof(char));
             strcpy(temp,[errs cStringUsingEncoding:NSASCIIStringEncoding]);
             sscanf(temp,"%*s SIZE:%s %s %s %*s SPD:%s ETA:%s]", down, total, percentage, speed, lefttime);
+            
+            NSString *time_left = [NSString stringWithFormat:@"剩余时间：%s", lefttime];
+            if ([time_left hasSuffix:@"]"]) {
+                time_left = [time_left stringByReplacingOccurrencesOfString:@"]" withString:@""];
+            } else {
+                time_left = @"";
+            }
+            
+            self.TimeLeft = time_left;
             
             self.ButtonEnabled = YES;
             
@@ -281,6 +290,7 @@
         switch ([task terminationStatus]) {
 
             case 0:
+            {
                 //下载完成
                 if (self.FatherTaskModel) {
                     //处理BT主任务的进度
@@ -298,12 +308,33 @@
                 self.ButtonTitle = @"完成下载";
                 self.ProgressValue = 100;
                 
+                if (!self.FatherTitle) {
+                    [[NSFileManager defaultManager] movePath:[NSString stringWithFormat:@"%@/%@.!",save_path, self.TaskTitle] toPath:[NSString stringWithFormat:@"%@/%@",save_path, self.TaskTitle] handler:nil];
+                } else {
+                    [[NSFileManager defaultManager] movePath:[NSString stringWithFormat:@"%@/%@/%@.!",save_path, self.FatherTitle, self.TaskTitle] toPath:[NSString stringWithFormat:@"%@/%@/%@",save_path, self.FatherTitle, self.TaskTitle] handler:nil];
+                }
+                
+                
+                if ([[NSUserDefaults standardUserDefaults] boolForKey:@UD_NOTIFICATION]) {
+                    NSUserNotification *un = [[NSUserNotification alloc] init];
+                    [un setTitle:@"fakeThunder - 下载完成"];
+                    [un setInformativeText:self.TaskTitle];
+                    [un setHasActionButton:NO];
+                    [[NSUserNotificationCenter defaultUserNotificationCenter] deliverNotification:un];
+                }
+                
+                
+                
+                
+            }
                 break;
+            
             case 7:
+            {
                 //暂停下载
                 self.ButtonEnabled = YES;
                 self.ButtonTitle = @"继续下载";
-
+            }
                 break;
                 
             default:

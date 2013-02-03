@@ -27,6 +27,8 @@
     return self;
 }
 
+
+
 - (void)windowDidLoad
 {
     [super windowDidLoad];
@@ -59,6 +61,8 @@
         
         
     }
+
+    
 }
 
 //----------------------------------------
@@ -72,13 +76,7 @@
         [NSApp beginSheet:login_window modalForWindow:self.window modalDelegate:self didEndSelector:@selector(sheetDidEnd:returnCode:contextInfo:) contextInfo:NULL];
         
     } else {
-        [toobaritem_login setLabel:@"登录"];
-        self.hash = nil;
-        [[NSUserDefaults standardUserDefaults] setObject:@"" forKey:@UD_LAST_LOGIN_HASH];
-        self.cookie = nil;
-        [[NSUserDefaults standardUserDefaults] setObject:@"" forKey:@UD_LAST_LOGIN_COOKIE];
-        [tasks_view clear_task_list];
-        [[NSUserDefaults standardUserDefaults] synchronize];
+        [NSApp beginSheet:logout_window modalForWindow:self.window modalDelegate:self didEndSelector:@selector(sheetDidEnd:returnCode:contextInfo:) contextInfo:NULL];
     }
 }
 
@@ -144,11 +142,36 @@
 }
 
 //----------------------------------------
+//   注销窗口 - 确认
+//----------------------------------------
+- (IBAction)logout_ok:(id)sender
+{
+    
+    [toobaritem_login setLabel:@"登录"];
+    self.hash = nil;
+    [[NSUserDefaults standardUserDefaults] setObject:@"" forKey:@UD_LAST_LOGIN_HASH];
+    self.cookie = nil;
+    [[NSUserDefaults standardUserDefaults] setObject:@"" forKey:@UD_LAST_LOGIN_COOKIE];
+    [tasks_view clear_task_list];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+    [NSApp endSheet:logout_window returnCode:NSCancelButton];
+}
+
+//----------------------------------------
+//   注销窗口 - 取消
+//----------------------------------------
+- (IBAction)logout_cancel:(id)sender
+{
+    [NSApp endSheet:logout_window returnCode:NSCancelButton];
+}
+
+//----------------------------------------
 //   SHEET - 关闭
 //----------------------------------------
 - (void)sheetDidEnd:(NSWindow *)sheet returnCode:(NSInteger)returnCode contextInfo:(void *)contextInfo;
 {
     [login_window close];
+    [logout_window close];
     [add_task_window close];
 }
 
@@ -235,6 +258,9 @@
 //----------------------------------------
 -(IBAction)toolbar_refresh:(id)sender
 {
+
+
+
     if (!self.hash || self.hash.length != 32) {
         [[NSAlert alertWithMessageText:@"无法加载任务" defaultButton:@"确定" alternateButton:nil otherButton:nil informativeTextWithFormat:@"请先登录您的迅雷VIP账户！"] runModal];
         return;
@@ -242,9 +268,10 @@
     
     if (message_view.view.isHidden) {
         [message_view showMessage:@"正在刷新任务……"];
+        
         current_page = 0;
         dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT,0), ^{
-            [tasks_view thread_get_task_list:current_page];
+            [tasks_view thread_refresh];
             [message_view hideMessage];
         });
     }
